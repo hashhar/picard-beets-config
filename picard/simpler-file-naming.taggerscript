@@ -1,0 +1,93 @@
+$noop(
+ArtistName/ReleaseType/DateAlbumName/DiscNum/TrackName
+
+TrackName:      tracknumber - title
+
+DiscNum:        Disc discnumber [only if multidisc]
+
+DateAlbumName:
+album == Non-Album: [Non-Album]/date [check for date]
+album != Non-Album: date - album [check for date]
+
+ReleaseType:    album  = Albums
+                single = Singles
+                ep = EPs
+                compilation = Compilations
+                soundtrack = Soundtracks
+                live = Live
+                remix = Remixes
+                etc = Others
+
+ArtistName:
+albumartist != "": albumartist
+albumartist == "": artist
+artist == Various Artist: Various Artists
+)
+
+$noop(ArtistName)
+$set(__VA_Name,Various Artists)
+$if($eq(%albumartist%,%__VA_Name%),
+    $set(__ArtistName,%__VA_Name%),
+    $set(__ArtistName,$if2(%albumartist%,%artist%)))
+
+$noop(ReleaseType)
+$if($eq(%_primaryreleasetype%,album),
+    $set(__ReleaseType,Albums))
+$if($eq(%_primaryreleasetype%,single),
+    $set(__ReleaseType,Singles))
+$if($eq(%_primaryreleasetype%,ep),
+    $set(__ReleaseType,EPs))
+
+$if($in(%_secondaryreleasetype%,compilation),
+    $set(__ReleaseType,Compilations))
+$if($in(%_secondaryreleasetype%,soundtrack),
+    $set(__ReleaseType,Soundtracks))
+$if($and($eq(%_primaryreleasetype%,album),$eq(%_secondaryreleasetype%,live)),
+    $set(__ReleaseType,Live))
+
+$if($not(%__ReleaseType%),
+    $set(__ReleaseType,Others))
+
+$noop(DateAlbumName)
+$if(%date%,
+    $set(__Date,$left(%date%,4)))
+
+$set(__NonAlbumName,[Non-Album])
+$if(%_releasecomment%,
+    $set(__AlbumName,%album% [%_releasecomment%]))
+$noop(Disambiguate if tagger script has enabled the flag)
+$set(__AlbumName,%album%)
+$if(%__Disambiguate%,
+    $if(%_releasecomment%,
+        $set(__AlbumName,%album% [%_releasecomment%])))
+$if(%__Date%,
+    $if($eq(%album%,%__NonAlbumName%),
+        $set(__DateAlbumName,%__AlbumName%/[%__Date%]),
+        $set(__DateAlbumName,[%__Date%] - %__AlbumName%)),
+    $set(__DateAlbumName,%__AlbumName%))
+
+$noop(DiscNum)
+$set(__PaddedDiscNumMinLength,1)
+$set(__TotalDiscNumberLength,$len($if2(%totaldiscs%,1)))
+$set(__DiscPadLength,$if($gt(%__TotalDiscNumberLength%,%__PaddedDiscNumMinLength%),
+    %__TotalDiscNumberLength%,
+    %__PaddedDiscNumMinLength%))
+
+$set(__PaddedDiscNum,Disc $num($if2(%discnumber%,1),%__DiscPadLength%))
+$if($gt(%totaldiscs%,1),
+    $set(__DiscNum,Disc %__PaddedDiscNum%$if(%discsubtitle%, - %discsubtitle%)))
+
+$noop(TrackName)
+$set(__PaddedTrackNumMinLength,2)
+$set(__TotalTrackNumberLength,$len($if2(%totaltracks%,1)))
+$set(__TrackPadLength,$if($gt(%__TotalTrackNumberLength%,%__PaddedTrackNumMinLength%),
+    %__TotalTrackNumberLength%,
+    %__PaddedTrackNumMinLength%))
+
+$set(__PaddedTrackNum,$num($if2(%tracknumber%,1),%__TrackPadLength%))
+$set(__TrackName,$if(%__PaddedTrackNum%, %__PaddedTrackNum% - )%title%)
+
+$noop(Final Name)
+$if(%__DiscNum%,
+    %__ArtistName%/%__ReleaseType%/%__DateAlbumName%/%__DiscNum%/%__TrackName%,
+    %__ArtistName%/%__ReleaseType%/%__DateAlbumName%/%__TrackName%)

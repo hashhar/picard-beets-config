@@ -1,0 +1,121 @@
+$noop(
+===============================================================================
+CONFIG: Change the values below as needed.
+The __NonAlbumName should match the value for non-album tracks in Picard and
+the __VA_Name should match the value for the Various Artists in Picard.
+__MinDiscNumLength specifies the minimum width we try to acheive for disc
+numbers. ie. a value of 2 will create at-least 2 digit disc numbers.
+__MinTrackNumLength is the same as __MinDiscNumLength but for track numbers.
+===============================================================================
+)
+$set(__NonAlbumName,[Non-Album])
+$set(__VA_Name,Various Artists)
+$set(__MinDiscNumLength,1)
+$set(__MinTrackNumLength,2)
+
+$noop(
+===============================================================================
+Artist: Generates artist names.
+===============================================================================
+)
+$if($eq(%albumartist%,%__VA_Name%),
+    $set(__Artist,%__VA_Name%),
+    $set(__Artist,$if2(%albumartist%,%artist%)))
+
+$noop(
+===============================================================================
+ReleaseType: Generates release type identifier.
+===============================================================================
+)
+$if($eq(%_primaryreleasetype%,album),
+    $set(__ReleaseType,Albums))
+$if($eq(%_primaryreleasetype%,single),
+    $set(__ReleaseType,Singles))
+$if($eq(%_primaryreleasetype%,ep),
+    $set(__ReleaseType,EPs))
+
+$if($in(%_secondaryreleasetype%,compilation),
+    $set(__ReleaseType,Compilations))
+$if($in(%_secondaryreleasetype%,soundtrack),
+    $set(__ReleaseType,Soundtracks))
+$if($and($eq(%_primaryreleasetype%,album),$eq(%_secondaryreleasetype%,live)),
+    $set(__ReleaseType,Live))
+
+$if($not(%__ReleaseType%),
+    $set(__ReleaseType,Others))
+
+$noop(
+===============================================================================
+Album: Generates album names with original years, release years and any
+disambiguation comments if configured.
+===============================================================================
+)
+$noop(Disambiguate album name if tagger script has enabled the flag)
+$set(__AlbumName,%album%)
+$if(%__Disambiguate%,
+    $if(%_releasecomment%,
+        $set(__AlbumName,%album% [%_releasecomment%]),
+        $if(%label%,
+            $set(__AlbumName,%album% [%label%]))))
+
+$noop(Extract original and release years)
+$set(__OriginalYear,$left($if2(%originalyear%,%originaldate%),4))
+$set(__ReleaseYear,$left(%date%,4))
+
+$noop(If both are empty we use just the album name)
+$if($not($if2(%__OriginalYear%,%__ReleaseYear%)),
+    $set(__Album,%__AlbumName%),
+    $if($or(%__OriginalYear%,%__ReleaseYear%),
+        $noop(If only one is available then use that)
+        $set(__Album,[$if2(%__OriginalYear%,%__ReleaseYear%)] - %__AlbumName%),
+        $if($eq(%__OriginalYear%,%__ReleaseYear%),
+            $noop(If both are equal use either of those)
+            $set(__Album,[%__OriginalYear%] - %__AlbumName%),
+            $noop(If both are unequal but present, disambiguate)
+            $set(__Album,[%__ReleaseYear%] - %__AlbumName% - [%__OriginalYear%]))))
+
+$noop(
+===============================================================================
+Disc: Generates padded disc numbers with subtitles if available.
+===============================================================================
+)
+$noop(Create a padded disc number)
+$set(__TotalDiscNumLength,$len($if2(%totaldiscs%,1)))
+$set(__DiscNumPadLength,$if($gt(%__TotalDiscNumLength%,%__MinDiscNumLength%),
+    %__TotalDiscNumLength%,
+    %__MinDiscNumLength%))
+$set(__PaddedDisc,Disc $num($if2(%discnumber%,1),%__DiscNumPadLength%))
+
+$noop(Add disc subtitle if available)
+$if(%discsubtitle%,
+    $set(__Disc,%__PaddedDisc% - %discsubtitle%),
+    $set(__Disc,%__PaddedDisc%))
+
+$noop(
+===============================================================================
+Track: Generates padded track numbers and track titles.
+===============================================================================
+)
+$noop(Create a padded track number)
+$set(__TotalTrackNumLength,$len($if2(%totaltracks%,1)))
+$set(__TrackNumPadLength,$if($gt(%__TotalTrackNumLength%,%__MinTrackNumLength%),
+    %__TotalTrackNumLength%,
+    %__MinTrackNumLength%))
+
+$noop(Add track title)
+$set(__TrackNum,$num($if2(%tracknumber%,1),%__TrackNumPadLength%))
+$set(__Track,%__TrackNum% - %title%)
+
+$noop(
+===============================================================================
+Final Name: Generates the final name depending on non-album tracks, multi-disc
+releases or other releases.
+===============================================================================
+)
+$noop(Non-Album tracks)
+$if($eq(%album%,%__NonAlbumName%),
+    %__Artist%/%__NonAlbumName%/$if(%date%,[$left(%date%,4)])/%__Track%,
+    $noop(Other tracks)
+    $if($gt(%totaldiscs%,1),
+        %__Artist%/%__ReleaseType%/%__Album%/%__Disc%/%__Track%,
+        %__Artist%/%__ReleaseType%/%__Album%/%__Track%))
