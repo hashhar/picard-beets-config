@@ -50,29 +50,32 @@ Album: Generates album names with original years, release years and any
 disambiguation comments if configured.
 ===============================================================================
 )
-$noop(Disambiguate album name if tagger script has enabled the flag)
-$set(__AlbumName,%album%)
-$if(%__Disambiguate%,
-    $if(%_releasecomment%,
-        $set(__AlbumName,%album% [%_releasecomment%]),
-        $if(%label%,
-            $set(__AlbumName,%album% [%label%]))))
-
 $noop(Extract original and release years)
 $set(__OriginalYear,$left($if2(%originalyear%,%originaldate%),4))
 $set(__ReleaseYear,$left(%date%,4))
 
-$noop(If both are empty we use just the album name)
+$set(__AlbumName,%album%)
 $if($not($if2(%__OriginalYear%,%__ReleaseYear%)),
-    $set(__Album,%__AlbumName%),
-    $if($or(%__OriginalYear%,%__ReleaseYear%),
-        $noop(If only one is available then use that)
-        $set(__Album,[$if2(%__OriginalYear%,%__ReleaseYear%)] - %__AlbumName%),
+    $noop(If both are empty we use just the album name)
+    $set(__AlbumWithYear,%__AlbumName%),
+    $noop(Both available, need to disambiguate if unequal, pick anyone otherwise)
+    $if($and(%__OriginalYear%,%__ReleaseYear%),
         $if($eq(%__OriginalYear%,%__ReleaseYear%),
             $noop(If both are equal use either of those)
-            $set(__Album,[%__OriginalYear%] - %__AlbumName%),
+            $set(__AlbumWithYear,[%__OriginalYear%] - %__AlbumName%),
             $noop(If both are unequal but present, disambiguate)
-            $set(__Album,[%__ReleaseYear%] - %__AlbumName% - [%__OriginalYear%]))))
+            $set(__AlbumWithYear,[%__ReleaseYear%] - %__AlbumName% [%__OriginalYear%])),
+        $noop(Pick whatever is available)
+        $set(__AlbumWithYear,[$if2(%__OriginalYear%,%__ReleaseYear%)] - %__AlbumName%)))
+
+$set(__Album,%__AlbumWithYear%)
+
+$noop(Disambiguate album name if tagger script has enabled the flag)
+$if(%__Disambiguate%,
+    $if(%_releasecomment%,
+        $set(__Album,%__AlbumWithYear% [%_releasecomment%]),
+        $if(%label%,
+            $set(__Album,%__AlbumWithYear% [%label%]))))
 
 $noop(
 ===============================================================================

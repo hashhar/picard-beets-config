@@ -110,17 +110,19 @@ item_fields:
   __i_album: |
     if original_year is None and year is None:
         return album
-    elif original_year is None or year is None:
+    elif original_year is not None and year is not None:
+        # Both available, need to disambiguate if unequal, pick anyone otherwise
+        if original_year == year:
+            # Pick whatever, doesn't make a difference
+            return "[{year}] - {album}".format(year=year, album=album)
+        else:
+            # Disambiguate since both are present and unequal
+            return "[{release_year}] - {album} [{original_year}]".format(
+                release_year=year, album=album, original_year=original_year)
+    else:
         # Pick whatever is available
         __year = original_year or year
         return "[{year}] - {album}".format(year=__year, album=album)
-    elif original_year == year:
-        # Pick whatever, doesn't make a difference
-        return "[{year}] - {album}".format(year=year, album=album)
-    else:
-        # Disambiguate since both are present and unequal
-        return "[{release_year}] - {album} - [{original_year}]".format(
-            release_year=year, album=album, original_year=original_year)
   __i_multidisc: 1 if disctotal > 1 else 0
   __i_disc: |
     __min_discnum_length = 1
