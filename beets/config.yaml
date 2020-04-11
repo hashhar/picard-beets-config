@@ -5,7 +5,6 @@ plugins:
   - acousticbrainz
   # lastimport command to import play counts from last.fm
   - lastimport
-  - lyrics
   # mbsync command to sync new metadata from MusicBrainz
   - mbsync
   - inline
@@ -34,10 +33,6 @@ acousticbrainz:
 
 lastfm:
   user:
-
-lyrics:
-  auto: yes
-  force: yes
 
 playlist:
   auto: yes
