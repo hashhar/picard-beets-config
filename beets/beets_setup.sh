@@ -14,6 +14,3 @@ pip3 install requests
 
 # LastImport
 pip3 install pylast
-
-# Web
-pip3 install flask
