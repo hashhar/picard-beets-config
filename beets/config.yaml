@@ -181,7 +181,7 @@ import:
   copy: no
   move: no
   resume: ask
-  incremental: no
+  incremental: yes
   incremental_skip_later: no
   from_scratch: no
   timid: yes
