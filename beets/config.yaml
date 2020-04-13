@@ -186,7 +186,6 @@ import:
   from_scratch: no
   timid: yes
   log: /mnt/d/Music/beets/importer.log
-  languages: en
   group_albums: yes
   autotag: yes
   bell: yes
